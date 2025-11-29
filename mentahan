@@ -1,0 +1,72 @@
+import tkinter as tk
+from tkinter import messagebox
+
+# -------------------------
+# Variabel game
+# -------------------------
+current_player = "X"
+board = [" " for _ in range(9)]
+
+def check_winner():
+    wins = [
+        (0,1,2), (3,4,5), (6,7,8),
+        (0,3,6), (1,4,7), (2,5,8),
+        (0,4,8), (2,4,6)
+    ]
+    for a, b, c in wins:
+        if board[a] == board[b] == board[c] != " ":
+            return board[a]
+    return None
+
+def click(i):
+    global current_player
+
+    # Jika kotak sudah terisi, abaikan
+    if board[i] != " ":
+        return
+
+    # Isi kotak
+    board[i] = current_player
+    buttons[i].config(text=current_player)
+
+    # Cek pemenang
+    winner = check_winner()
+    if winner:
+        messagebox.showinfo("Game Over", f"{winner} menang!")
+        reset()
+        return
+
+    # Cek seri
+    if " " not in board:
+        messagebox.showinfo("Game Over", "Seri!")
+        reset()
+        return
+
+    # Ganti pemain
+    current_player = "O" if current_player == "X" else "X"
+
+def reset():
+    global board, current_player
+    board = [" " for _ in range(9)]
+    current_player = "X"
+    for btn in buttons:
+        btn.config(text="")
+
+# -------------------------
+# UI dasar Tkinter
+# -------------------------
+root = tk.Tk()
+root.title("Tic Tac Toe")
+
+frame = tk.Frame(root)
+frame.pack()
+
+buttons = []
+
+for i in range(9):
+    btn = tk.Button(frame, text="", width=5, height=2,
+                    command=lambda i=i: click(i))
+    btn.grid(row=i//3, column=i%3)
+    buttons.append(btn)
+
+root.mainloop()
