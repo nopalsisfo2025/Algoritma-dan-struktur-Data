@@ -1,0 +1,197 @@
+import tkinter as tk
+from tkinter import messagebox
+
+# -----------------------------
+# Warna & Style
+# -----------------------------
+BG = "#1e1e1e"
+BTN_BG = "#2c2c2c"
+BTN_HOVER = "#3b3b3b"
+BTN_CLICK = "#4f4f4f"
+X_COLOR = "#ff5c5c"
+O_COLOR = "#5c8bff"
+WIN_COLOR = "#ffd54f"
+FONT = ("Arial", 32, "bold")
+
+board = [" " for _ in range(9)]
+current_player = "X"
+
+
+# -----------------------------
+# Animasi
+# -----------------------------
+def animate_hover_in(btn):
+    btn.config(bg=BTN_HOVER)
+
+
+def animate_hover_out(btn):
+    btn.config(bg=BTN_BG)
+
+
+def animate_click(btn):
+    # Membuat tombol sedikit membesar saat diklik
+    def grow(step=0):
+        if step == 3:
+            shrink()
+            return
+        btn.config(width=4 + step, height=1)
+        btn.after(30, lambda: grow(step + 1))
+
+    def shrink(step=0):
+        if step == 3:
+            btn.config(width=4, height=1)
+            return
+        btn.config(width=6 - step, height=1)
+        btn.after(30, lambda: shrink(step + 1))
+
+    grow()
+
+
+def flash_winner(indices):
+    # Animasi kedip highlight pemenang
+    def flash(on=True, count=0):
+        if count == 6:
+            return
+        for i in indices:
+            buttons[i].config(bg=WIN_COLOR if on else BTN_BG)
+        root.after(200, lambda: flash(not on, count + 1))
+
+    flash()
+
+
+# -----------------------------
+# Game Logic
+# -----------------------------
+def check_winner():
+    wins = [
+        (0,1,2), (3,4,5), (6,7,8),
+        (0,3,6), (1,4,7), (2,5,8),
+        (0,4,8), (2,4,6)
+    ]
+    for a, b, c in wins:
+        if board[a] == board[b] == board[c] != " ":
+            return board[a], (a, b, c)
+    return None, None
+
+
+def is_full():
+    return " " not in board
+
+
+# -----------------------------
+# Event Klik
+# -----------------------------
+def handle_click(i):
+    global current_player
+
+    if board[i] != " ":
+        return
+
+    board[i] = current_player
+    animate_click(buttons[i])
+    update_ui()
+
+    winner, idx = check_winner()
+
+    if winner:
+        flash_winner(idx)
+        root.after(1200, lambda: finish_game(winner))
+        return
+
+    if is_full():
+        messagebox.showinfo("Game Over", "Seri!")
+        reset_game()
+        return
+
+    current_player = "O" if current_player == "X" else "X"
+    turn_label.config(text=f"Giliran: {current_player}")
+
+
+def finish_game(winner):
+    messagebox.showinfo("Game Over", f"Pemain {winner} menang!")
+    reset_game()
+
+
+# -----------------------------
+# Update UI
+# -----------------------------
+def update_ui():
+    for i in range(9):
+        val = board[i]
+        if val == "X":
+            buttons[i].config(text="X", fg=X_COLOR)
+        elif val == "O":
+            buttons[i].config(text="O", fg=O_COLOR)
+        else:
+            buttons[i].config(text="", fg="white")
+
+
+def reset_game():
+    global board, current_player
+    board = [" " for _ in range(9)]
+    current_player = "X"
+    turn_label.config(text="Giliran: X")
+    update_ui()
+
+    # Reset warna tombol
+    for btn in buttons:
+        btn.config(bg=BTN_BG)
+
+
+# -----------------------------
+# Setup Tkinter
+# -----------------------------
+root = tk.Tk()
+root.title("Tic-Tac-Toe Animasi")
+root.config(bg=BG)
+root.resizable(False, False)
+
+title = tk.Label(root, text="Tic-Tac-Toe", bg=BG, fg="white", font=("Arial", 26, "bold"))
+title.pack(pady=10)
+
+turn_label = tk.Label(root, text="Giliran: X", bg=BG, fg="white", font=("Arial", 20))
+turn_label.pack()
+
+frame = tk.Frame(root, bg=BG)
+frame.pack(pady=10)
+
+buttons = []
+
+# Membuat tombol dengan animasi fade-in
+def fade_in_button(btn, step=0):
+    alpha = max(0, min(255, step * 25))
+    color = f"#{alpha:02x}{alpha:02x}{alpha:02x}"
+    btn.config(highlightbackground=color)
+
+    if step < 10:
+        root.after(20, lambda: fade_in_button(btn, step + 1))
+
+
+for i in range(9):
+    btn = tk.Button(
+        frame,
+        text="",
+        font=FONT,
+        width=4,
+        height=1,
+        bg=BTN_BG,
+        fg="white",
+        activebackground=BTN_HOVER,
+        bd=0,
+        command=lambda i=i: handle_click(i)
+    )
+
+    btn.grid(row=i//3, column=i%3, padx=6, pady=6)
+
+    # Animasi hover
+    btn.bind("<Enter>", lambda e, b=btn: animate_hover_in(b))
+    btn.bind("<Leave>", lambda e, b=btn: animate_hover_out(b))
+
+    fade_in_button(btn)  # fade in animation
+
+    buttons.append(btn)
+
+reset_btn = tk.Button(root, text="Reset Game", bg="#ffaa00", fg="black", font=("Arial", 14), command=reset_game)
+reset_btn.pack(pady=15)
+
+root.mainloop()
